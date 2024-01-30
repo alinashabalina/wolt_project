@@ -1,5 +1,4 @@
 import json
-import math
 from copy import deepcopy
 from datetime import datetime
 
@@ -8,7 +7,7 @@ from dateutil import parser
 from flask import Flask, jsonify, request
 from flask_migrate import Migrate
 
-from models import init_app, db
+from models import init_app, db, DeliveryFee
 from schemas import DeliverySchema
 
 app = Flask(__name__)
@@ -21,11 +20,7 @@ migrate = Migrate(app, db)
 
 
 def _check_free(data):
-    fee = 0
-    if data["cart_value"] >= 20000:
-        return fee
-    else:
-        return False
+    return data["cart_value"] >= 20000
 
 
 def _check_cart_value(data):
@@ -50,12 +45,6 @@ def _check_distance(data):
         return fee
 
 
-def _check_d(data):
-    distance_units = data["delivery_distance"] / 500
-    distance_units = max(math.ceil(distance_units), 2)
-    return 1 * distance_units
-
-
 def _check_items(data):
     fee = 0
     if data["number_of_items"] <= 4:
@@ -72,16 +61,15 @@ def _check_items(data):
 
 
 def _check_friday(data):
-    fee_rate = 1
     if datetime.strptime(data["time"], "%Y-%m-%dT%H:%M:%SZ").isoweekday() != 5:
-        return False, fee_rate
+        return False
     else:
-        return True, fee_rate
+        return True
 
 
 def _check_time(data):
     request_time = parser.parse(data["time"])
-    if (int(str(datetime.time(request_time))[:2]) >= 15) and (int(str(datetime.time(request_time))[:2]) <= 19):
+    if 15 <= request_time.hour <= 19:
         return True
     else:
         return False
@@ -90,32 +78,32 @@ def _check_time(data):
 @app.route("/calculate", methods=['POST'])
 def calculate_fee():
     try:
+        fee = DeliveryFee()
         jsonschema.validate(instance=json.loads(request.data), schema=DeliverySchema.DeliveryFee)
         fee_sum = 0
         data = json.loads(request.data)
         if _check_free(data=json.loads(request.data)) is False:
             fee_sum = _check_cart_value(data=data) + _check_items(data=data) + _check_distance(data=data)
+            if _check_friday(data=data) is True and _check_time(data=data) is True:
+                fee_sum *= 1.2
             if fee_sum > 1500:
-                fee_final = 1500
-                if _check_friday(data=data)[0] is False:
-                    fee_final = fee_final
-                return jsonify({"delivery_fee": fee_final}), 200
-            else:
-                if _check_time(data=data) is True:
-                    fee_sum = (_check_cart_value(data=data) + _check_items(data=data) + _check_distance(data=data)) * 1.2
-                    if fee_sum > 1500:
-                        fee_final = 1500
-                        return jsonify({"delivery_fee": fee_final}), 200
-                else:
-                    fee_sum = _check_cart_value(data=data) + _check_items(data=data) + _check_distance(data=data)
-                    if fee_sum > 1500:
-                        fee_final = 1500
-                        return jsonify({"delivery_fee": fee_final}), 200
-        else:
-            return jsonify({"delivery_fee": fee_sum}), 200
+                fee_sum = 1500
+        fee.delivery_fee = fee_sum
+        db.session.add(fee)
+        db.session.commit()
+        return jsonify({"delivery_fee": fee_sum}), 200
     except jsonschema.exceptions.ValidationError as e:
+        db.session.rollback()
         response = {
             "message": f"Validation error: {e.message}",
+
+        }
+        return jsonify(response), 400
+
+    except ValueError as e:
+        db.session.rollback()
+        response = {
+            "message": f"Validation error: {e}",
 
         }
         return jsonify(response), 400

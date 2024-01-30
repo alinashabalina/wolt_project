@@ -7,7 +7,8 @@ class DeliverySchema:
                 "minimum": 1
             },
             "delivery_distance": {
-                "type": "integer"
+                "type": "integer",
+                "minimum": 1
             },
             "number_of_items": {
                 "type": "integer",
