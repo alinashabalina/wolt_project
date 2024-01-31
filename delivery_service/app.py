@@ -240,11 +240,46 @@ class CheckItemsTests(unittest.TestCase):
         result = _check_items(data_new)
         self.assertEqual(result, 570)
 
+
 class CheckFridayTests(unittest.TestCase):
     data = {"cart_value": 1, "delivery_distance": 1, "number_of_items": 1, "time": "2021-12-31T13:00:00Z"}
 
-    def test_check_items_no_surge(self):
+    def test_check_friday_not_friday(self):
         data_new = deepcopy(self.data)
-        data_new["number_of_items"] = 4
-        result = _check_items(data_new)
-        self.assertEqual(result, 0)
+        data_new["time"] = "2024-01-25T13:00:00Z"
+        result = _check_friday(data_new)
+        self.assertFalse(result)
+
+    def test_check_friday_not_friday_leap(self):
+        data_new = deepcopy(self.data)
+        data_new["time"] = "2024-02-29T13:00:00Z"
+        result = _check_friday(data_new)
+        self.assertFalse(result)
+
+    def test_check_friday_friday_leap(self):
+        data_new = deepcopy(self.data)
+        data_new["time"] = "2024-03-01T13:00:00Z"
+        result = _check_friday(data_new)
+        self.assertTrue(result)
+
+
+class CheckTimeTests(unittest.TestCase):
+    data = {"cart_value": 1, "delivery_distance": 1, "number_of_items": 1, "time": "2021-12-31T13:00:00Z"}
+
+    def test_check_time_not_friday_timerange(self):
+        data_new = deepcopy(self.data)
+        data_new["time"] = "2024-01-25T15:00:00Z"
+        result = _check_time(data_new)
+        self.assertTrue(result)
+
+    def test_check_time_friday_timerange(self):
+        data_new = deepcopy(self.data)
+        data_new["time"] = "2024-01-18T15:00:00Z"
+        result = _check_time(data_new)
+        self.assertTrue(result)
+
+    def test_check_time_friday_not_timerange(self):
+        data_new = deepcopy(self.data)
+        data_new["time"] = "2024-03-01T13:00:00Z"
+        result = _check_time(data_new)
+        self.assertFalse(result)
