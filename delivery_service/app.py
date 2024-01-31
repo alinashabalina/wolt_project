@@ -1,9 +1,9 @@
 import json
+import unittest
 from copy import deepcopy
 from datetime import datetime
 
 import jsonschema
-import unittest
 from dateutil import parser
 from flask import Flask, jsonify, request
 from flask_migrate import Migrate
@@ -149,7 +149,6 @@ class CheckFreeTests(unittest.TestCase):
 
 
 class CheckCartValueTests(unittest.TestCase):
-
     data = {"cart_value": 1, "delivery_distance": 1, "number_of_items": 1, "time": "2021-12-31T13:00:00Z"}
 
     def test_check_cart_value_surge(self):
@@ -178,7 +177,6 @@ class CheckCartValueTests(unittest.TestCase):
 
 
 class CheckDistanceTests(unittest.TestCase):
-
     data = {"cart_value": 1, "delivery_distance": 1, "number_of_items": 1, "time": "2021-12-31T13:00:00Z"}
 
     def test_check_delivery_distance_no_surge(self):
@@ -207,7 +205,6 @@ class CheckDistanceTests(unittest.TestCase):
 
 
 class CheckItemsTests(unittest.TestCase):
-
     data = {"cart_value": 1, "delivery_distance": 1, "number_of_items": 1, "time": "2021-12-31T13:00:00Z"}
 
     def test_check_items_no_surge(self):
@@ -268,7 +265,7 @@ class CheckTimeTests(unittest.TestCase):
 
     def test_check_time_not_friday_timerange(self):
         data_new = deepcopy(self.data)
-        data_new["time"] = "2024-01-25T15:00:00Z"
+        data_new["time"] = "2024-01-25T15:00:01Z"
         result = _check_time(data_new)
         self.assertTrue(result)
 
@@ -280,6 +277,12 @@ class CheckTimeTests(unittest.TestCase):
 
     def test_check_time_friday_not_timerange(self):
         data_new = deepcopy(self.data)
-        data_new["time"] = "2024-03-01T13:00:00Z"
+        data_new["time"] = "2024-03-01T20:00:00Z"
+        result = _check_time(data_new)
+        self.assertFalse(result)
+
+    def test_check_time_not_friday_not_timerange(self):
+        data_new = deepcopy(self.data)
+        data_new["time"] = "2024-02-29T14:59:59Z"
         result = _check_time(data_new)
         self.assertFalse(result)
