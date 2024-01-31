@@ -149,13 +149,102 @@ class CheckFreeTests(unittest.TestCase):
 
 
 class CheckCartValueTests(unittest.TestCase):
+
     data = {"cart_value": 1, "delivery_distance": 1, "number_of_items": 1, "time": "2021-12-31T13:00:00Z"}
 
+    def test_check_cart_value_surge(self):
+        data_new = deepcopy(self.data)
+        data_new["cart_value"] = 1
+        result = _check_cart_value(data_new)
+        self.assertEqual(result, 999)
+
+    def test_check_cart_value_surge_999(self):
+        data_new = deepcopy(self.data)
+        data_new["cart_value"] = 999
+        result = _check_cart_value(data_new)
+        self.assertEqual(result, 1)
+
+    def test_check_cart_value_no_surge_1000(self):
+        data_new = deepcopy(self.data)
+        data_new["cart_value"] = 1000
+        result = _check_cart_value(data_new)
+        self.assertEqual(result, 0)
+
+    def test_check_cart_value_no_surge_more_than_1000(self):
+        data_new = deepcopy(self.data)
+        data_new["cart_value"] = 1001
+        result = _check_cart_value(data_new)
+        self.assertEqual(result, 0)
 
 
+class CheckDistanceTests(unittest.TestCase):
+
+    data = {"cart_value": 1, "delivery_distance": 1, "number_of_items": 1, "time": "2021-12-31T13:00:00Z"}
+
+    def test_check_delivery_distance_no_surge(self):
+        data_new = deepcopy(self.data)
+        data_new["delivery_distance"] = 999
+        result = _check_distance(data_new)
+        self.assertEqual(result, 200)
+
+    def test_check_delivery_distance_no_surge_1000(self):
+        data_new = deepcopy(self.data)
+        data_new["delivery_distance"] = 1000
+        result = _check_distance(data_new)
+        self.assertEqual(result, 200)
+
+    def test_check_delivery_distance_surge_1001(self):
+        data_new = deepcopy(self.data)
+        data_new["delivery_distance"] = 1001
+        result = _check_distance(data_new)
+        self.assertEqual(result, 300)
+
+    def test_check_delivery_distance_surge_1501(self):
+        data_new = deepcopy(self.data)
+        data_new["delivery_distance"] = 1501
+        result = _check_distance(data_new)
+        self.assertEqual(result, 400)
 
 
+class CheckItemsTests(unittest.TestCase):
 
+    data = {"cart_value": 1, "delivery_distance": 1, "number_of_items": 1, "time": "2021-12-31T13:00:00Z"}
 
+    def test_check_items_no_surge(self):
+        data_new = deepcopy(self.data)
+        data_new["number_of_items"] = 4
+        result = _check_items(data_new)
+        self.assertEqual(result, 0)
 
+    def test_check_items_surge(self):
+        data_new = deepcopy(self.data)
+        data_new["number_of_items"] = 7
+        result = _check_items(data_new)
+        self.assertEqual(result, 150)
 
+    def test_check_items_surge_11(self):
+        data_new = deepcopy(self.data)
+        data_new["number_of_items"] = 11
+        result = _check_items(data_new)
+        self.assertEqual(result, 350)
+
+    def test_check_items_surge_12(self):
+        data_new = deepcopy(self.data)
+        data_new["number_of_items"] = 12
+        result = _check_items(data_new)
+        self.assertEqual(result, 400)
+
+    def test_check_items_surge_13(self):
+        data_new = deepcopy(self.data)
+        data_new["number_of_items"] = 13
+        result = _check_items(data_new)
+        self.assertEqual(result, 570)
+
+class CheckFridayTests(unittest.TestCase):
+    data = {"cart_value": 1, "delivery_distance": 1, "number_of_items": 1, "time": "2021-12-31T13:00:00Z"}
+
+    def test_check_items_no_surge(self):
+        data_new = deepcopy(self.data)
+        data_new["number_of_items"] = 4
+        result = _check_items(data_new)
+        self.assertEqual(result, 0)
