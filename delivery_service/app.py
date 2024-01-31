@@ -76,8 +76,14 @@ def _check_time(data: dict) -> bool:
         return False
 
 
+@app.route("/")
+def index_page():
+    response = {"message": "This page is empty"}
+    return jsonify(response), 200
+
+
 @app.route("/calculate", methods=['POST'])
-def calculate_fee() -> tuple:
+def calculate_fee() -> json:
     try:
         fee = DeliveryFee()
         jsonschema.validate(instance=json.loads(request.data), schema=DeliverySchema.DeliveryFee)

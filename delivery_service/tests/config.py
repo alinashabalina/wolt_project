@@ -8,6 +8,10 @@ class DeliveryService:
     def __init__(self):
         pass
 
+    def check_service(self):
+        response = requests.get(self.url)
+        return response
+
     def calculate_fee(self, data):
         response = requests.post(self.url + self.delivery_fee_endpoint, json=data)
         return response
