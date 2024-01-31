@@ -3,6 +3,7 @@ from copy import deepcopy
 from datetime import datetime
 
 import jsonschema
+import unittest
 from dateutil import parser
 from flask import Flask, jsonify, request
 from flask_migrate import Migrate
@@ -19,11 +20,11 @@ init_app(app)
 migrate = Migrate(app, db)
 
 
-def _check_free(data):
+def _check_free(data: dict) -> bool:
     return data["cart_value"] >= 20000
 
 
-def _check_cart_value(data):
+def _check_cart_value(data: dict) -> int:
     fee = 0
     if data["cart_value"] < 1000:
         fee = 1000 - data["cart_value"]
@@ -32,7 +33,7 @@ def _check_cart_value(data):
         return fee
 
 
-def _check_distance(data):
+def _check_distance(data: dict) -> int:
     if data["delivery_distance"] <= 1000:
         fee = 200
         return fee
@@ -45,7 +46,7 @@ def _check_distance(data):
         return fee
 
 
-def _check_items(data):
+def _check_items(data: dict) -> int:
     fee = 0
     if data["number_of_items"] <= 4:
         fee = 0
@@ -60,14 +61,14 @@ def _check_items(data):
         return fee
 
 
-def _check_friday(data):
+def _check_friday(data: dict) -> bool:
     if datetime.strptime(data["time"], "%Y-%m-%dT%H:%M:%SZ").isoweekday() != 5:
         return False
     else:
         return True
 
 
-def _check_time(data):
+def _check_time(data: dict) -> bool:
     request_time = parser.parse(data["time"])
     if 15 <= request_time.hour <= 19:
         return True
@@ -76,7 +77,7 @@ def _check_time(data):
 
 
 @app.route("/calculate", methods=['POST'])
-def calculate_fee():
+def calculate_fee() -> tuple:
     try:
         fee = DeliveryFee()
         jsonschema.validate(instance=json.loads(request.data), schema=DeliverySchema.DeliveryFee)
@@ -107,3 +108,54 @@ def calculate_fee():
 
         }
         return jsonify(response), 400
+
+
+class CheckFreeTests(unittest.TestCase):
+    data = {"cart_value": 1, "delivery_distance": 1, "number_of_items": 1, "time": "2021-12-31T13:00:00Z"}
+
+    def test_check_free_less(self):
+        result = _check_free(self.data)
+        self.assertFalse(result)
+
+    def test_check_free_1_less(self):
+        data_new = deepcopy(self.data)
+        data_new["cart_value"] = 19999
+        result = _check_free(data_new)
+        self.assertFalse(result)
+
+    def test_check_free_float(self):
+        data_new = deepcopy(self.data)
+        data_new["cart_value"] = 19999.99
+        result = _check_free(data_new)
+        self.assertFalse(result)
+
+    def test_check_free_free_with_long_distance(self):
+        data_new = deepcopy(self.data)
+        data_new["cart_value"] = 20000
+        data_new["delivery_distance"] = 2000000000000
+        result = _check_free(data_new)
+        self.assertTrue(result)
+
+    def test_check_free_free(self):
+        data_new = deepcopy(self.data)
+        data_new["cart_value"] = 20000
+        result = _check_free(data_new)
+        self.assertTrue(result)
+
+    def test_check_free_string(self):
+        data_new = deepcopy(self.data)
+        data_new["cart_value"] = "20000"
+        self.assertRaises(TypeError, _check_free(data_new))
+
+
+class CheckCartValueTests(unittest.TestCase):
+    data = {"cart_value": 1, "delivery_distance": 1, "number_of_items": 1, "time": "2021-12-31T13:00:00Z"}
+
+
+
+
+
+
+
+
+
