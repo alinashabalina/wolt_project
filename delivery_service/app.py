@@ -6,16 +6,17 @@ from datetime import datetime
 import jsonschema
 from dateutil import parser
 from flask import Flask, jsonify, request
+from flask.typing import ResponseReturnValue
 from flask_migrate import Migrate
 
-from models import init_app, db, DeliveryFee
-from schemas import DeliverySchema
+from delivery_service.models import init_app, db, DeliveryFee
+from delivery_service.schemas import DeliverySchema
 
 app = Flask(__name__)
 
 app.config['SECRET_KEY'] = "key"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///./database/delivery_fee.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///./delivery_fee.db'
 init_app(app)
 migrate = Migrate(app, db)
 
@@ -83,7 +84,7 @@ def index_page():
 
 
 @app.route("/calculate", methods=['POST'])
-def calculate_fee() -> json:
+def calculate_fee() -> ResponseReturnValue:
     try:
         fee = DeliveryFee()
         jsonschema.validate(instance=json.loads(request.data), schema=DeliverySchema.DeliveryFee)
@@ -111,14 +112,15 @@ def calculate_fee() -> json:
         db.session.rollback()
         response = {
             "message": f"Validation error: {e}",
-
         }
         return jsonify(response), 400
 
 
-class CheckFreeTests(unittest.TestCase):
+class BaseTestCase(unittest.TestCase):
     data = {"cart_value": 1, "delivery_distance": 1, "number_of_items": 1, "time": "2021-12-31T13:00:00Z"}
 
+
+class CheckFreeTests(BaseTestCase):
     def test_check_free_less(self):
         result = _check_free(self.data)
         self.assertFalse(result)
@@ -151,11 +153,11 @@ class CheckFreeTests(unittest.TestCase):
     def test_check_free_string(self):
         data_new = deepcopy(self.data)
         data_new["cart_value"] = "20000"
-        self.assertRaises(TypeError, _check_free(data_new))
+        with self.assertRaises(TypeError):
+            _check_free(data_new)
 
 
-class CheckCartValueTests(unittest.TestCase):
-    data = {"cart_value": 1, "delivery_distance": 1, "number_of_items": 1, "time": "2021-12-31T13:00:00Z"}
+class CheckCartValueTests(BaseTestCase):
 
     def test_check_cart_value_surge(self):
         data_new = deepcopy(self.data)
@@ -182,8 +184,7 @@ class CheckCartValueTests(unittest.TestCase):
         self.assertEqual(result, 0)
 
 
-class CheckDistanceTests(unittest.TestCase):
-    data = {"cart_value": 1, "delivery_distance": 1, "number_of_items": 1, "time": "2021-12-31T13:00:00Z"}
+class CheckDistanceTests(BaseTestCase):
 
     def test_check_delivery_distance_no_surge(self):
         data_new = deepcopy(self.data)
@@ -210,8 +211,7 @@ class CheckDistanceTests(unittest.TestCase):
         self.assertEqual(result, 400)
 
 
-class CheckItemsTests(unittest.TestCase):
-    data = {"cart_value": 1, "delivery_distance": 1, "number_of_items": 1, "time": "2021-12-31T13:00:00Z"}
+class CheckItemsTests(BaseTestCase):
 
     def test_check_items_no_surge(self):
         data_new = deepcopy(self.data)
@@ -244,8 +244,7 @@ class CheckItemsTests(unittest.TestCase):
         self.assertEqual(result, 570)
 
 
-class CheckFridayTests(unittest.TestCase):
-    data = {"cart_value": 1, "delivery_distance": 1, "number_of_items": 1, "time": "2021-12-31T13:00:00Z"}
+class CheckFridayTests(BaseTestCase):
 
     def test_check_friday_not_friday(self):
         data_new = deepcopy(self.data)
@@ -266,8 +265,7 @@ class CheckFridayTests(unittest.TestCase):
         self.assertTrue(result)
 
 
-class CheckTimeTests(unittest.TestCase):
-    data = {"cart_value": 1, "delivery_distance": 1, "number_of_items": 1, "time": "2021-12-31T13:00:00Z"}
+class CheckTimeTests(BaseTestCase):
 
     def test_check_time_not_friday_timerange(self):
         data_new = deepcopy(self.data)
