@@ -35,3 +35,9 @@ pytest
 
 Note that the app should be running on port 5000 (default for Flask) or the tests will throw an exception "Service not running"
 
+To run unit tests one has to run the following command from the delivery_service folder:
+
+```
+pytest app.py 
+```
+
